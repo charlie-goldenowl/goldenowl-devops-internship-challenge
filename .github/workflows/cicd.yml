@@ -82,8 +82,9 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
+          envs: DOCKERHUB_USERNAME
           script: |
-            docker pull ${DOCKERHUB_USERNAME}/godenowl:latest
+            docker pull $DOCKERHUB_USERNAME/godenowl:latest
             docker stop backend
             docker rm backend
-            docker run -d --name backend -p 80:3000 ${DOCKERHUB_USERNAME}/godenowl:latest
+            docker run -d --name backend -p 80:3000 $DOCKERHUB_USERNAME/godenowl:latest
