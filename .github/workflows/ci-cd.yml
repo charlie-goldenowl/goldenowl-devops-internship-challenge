@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - "master"
+      - "feature/**"
 
 jobs:
   # Job 1: Build và Test ứng dụng Node.js
   build-and-test:
-    runs-on: ubuntu-latest # Chạy trên máy ảo Ubuntu
+    runs-on: ubuntu-latest 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -16,17 +17,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18 # Sử dụng Node.js 18
+          node-version: 18 
 
       - name: Install dependencies
         run: cd src && npm i
 
       - name: Run tests
-        run: cd src && npm test # Chạy test như trong README
+        run: cd src && npm test 
 
   # Job 2: Build và Push Docker image lên Docker Hub
   build-and-push-docker:
-    # Job này chỉ chạy sau khi 'build-and-test' thành công
+
+    if: github.ref == 'refs/heads/main'
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
@@ -42,8 +44,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: . # Build từ thư mục gốc
-          file: ./Dockerfile # Sử dụng Dockerfile
-          push: true # Đẩy image đi
-          # Gắn thẻ (tag) cho image, ví dụ: ten-dockerhub/golden-owl-app:latest
+          context: . 
+          file: ./Dockerfile 
+          push: true 
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/golden-owl-app:latest
