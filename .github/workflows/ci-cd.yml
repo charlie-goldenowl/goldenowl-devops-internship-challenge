@@ -28,7 +28,7 @@ jobs:
   # Job 2: Build và Push Docker image lên Docker Hub
   build-and-push-docker:
 
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
