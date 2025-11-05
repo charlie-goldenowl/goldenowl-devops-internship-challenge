@@ -1,0 +1,22 @@
+# Terraform State
+*.tfstate
+*.tfstate.backup
+
+# Terraform local files
+.terraform/
+.terraform.lock.hcl
+
+# Local variables
+*.tfvars
+*.auto.tfvars
+
+# Node.js dependencies
+src/node_modules/
+src/npm-debug.log
+
+# OS files
+.DS_Store
+
+# Local download files (từ user-data)
+awscliv2.zip
+aws/
