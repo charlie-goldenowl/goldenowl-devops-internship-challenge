@@ -1,0 +1,11 @@
+node_modules
+.git
+# Bỏ qua thư mục chứa plugin của Terraform
+.terraform/
+
+# Bỏ qua file trạng thái của Terraform (Cực kỳ quan trọng để bảo mật)
+*.tfstate
+*.tfstate.backup
+
+# Bỏ qua file khóa trạng thái
+.terraform.tfstate.lock.info
