@@ -1,0 +1,30 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: 
+      - feature/**
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: ./src
+        run: npm ci
+
+      - name: Run lint
+        working-directory: ./src
+        run: npm run lint:check
+
+      - name: Run tests
+        working-directory: ./src
+        run: npm test
+
+      
