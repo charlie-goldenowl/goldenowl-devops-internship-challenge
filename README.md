@@ -11,7 +11,7 @@
 
 Kiến trúc hệ thống tận dụng một luồng pipeline bảo mật, hiện đại và có khả năng mở rộng cao được xây dựng hoàn toàn dựa trên **GitHub Actions** và **Google Cloud Platform (GCP)**.
 
-![Sơ đồ kiến trúc](./architecture-diagram.png) 
+![Sơ đồ kiến trúc](./GOS-intern.drawio.png) 
 
 ### Trình tự vận hành của luồng (Workflow Sequence):
 1. **Developer Push:** Lập trình viên đẩy mã nguồn mới lên kho lưu trữ GitHub.
