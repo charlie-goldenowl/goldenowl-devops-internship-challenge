@@ -1,0 +1,95 @@
+name: CI&CD to GCP
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Cấp quyền cho GitHub OIDC Token (Bắt buộc phải có để chạy WIF)
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: asia-southeast1
+  GAR_REPO: gos-repo           # Tên Artifact Registry của bạn
+  SERVICE_NAME: goldenowl-app  # Tên dịch vụ Cloud Run
+
+jobs:
+  # --- STAGE 1: TEST ---
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: src/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd src
+          npm ci
+
+      - name: Run Tests
+        run: |
+          cd src
+          npm test
+
+  # --- STAGE 2: BUILD & DEPLOY (WIF Tích hợp) ---
+  build-and-deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ĐĂNG NHẬP VÀO GCP SỬ DỤNG WORKLOAD IDENTITY FEDERATION
+      - name: Google Auth via WIF
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: 'projects/${{ secrets.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      # Thiết lập Cloud SDK
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Cấu hình Docker để xác thực với Artifact Registry
+      - name: Configure Docker for GAR
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      # Build và Tag Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+
+      # Push Docker Image lên GAR
+      - name: Push Docker Image to GAR
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      # Deploy lên Google Cloud Run (tự động kích hoạt Load Balancing và Auto Scaling từ 0 -> max)
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          flags: '--allow-unauthenticated --port=3000'
+
+      # In ra URL đã deploy 
+      - name: Show Deploy URL
+        run: |
+          echo "Ứng dụng của bạn đã được deploy thành công tại:"
+          gcloud run services describe ${{ env.SERVICE_NAME }} --platform managed --region ${{ env.REGION }} --format 'value(status.url)'
