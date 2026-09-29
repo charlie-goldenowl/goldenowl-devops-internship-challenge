@@ -1,10 +1,10 @@
-FROM node:18-alpine AS deps
+FROM node:alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 
 RUN npm ci --omit=dev && npm cache clean --force
 
-FROM alpine:3.19
+FROM alpine:3.24
 
 RUN addgroup -g 1000 node && \
     adduser -u 1000 -G node -s /bin/sh -D node && \
