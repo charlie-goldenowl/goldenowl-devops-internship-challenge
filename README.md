@@ -4,14 +4,15 @@ At Golden Owl, we believe in treating infrastructure as code and automating reso
 In this technical test, we challenge you to create a robust CI build pipeline using GitHub Actions. You have the freedom to complete this test in your local environment.
 
 ## Your Mission 🌟
-Your mission, should you choose to accept it, is to craft a CI job that:
-1. Forks this repository to your personal GitHub account.
-2. Dockerize a Node.js application, keeping the image **as lightweight as possible** (Please state the final image size in your repository's README so we can see the result of your optimization)
-3. Establishes an automated CI/CD build process using GitHub Actions workflow and a container registry service such as DockerHub or Amazon Elastic Container Registry (ECR) or similar services.
-4. Initiates CI tests automatically when changes are pushed to the feature branch on GitHub.
-5. Utilizes GitHub Actions for Continuous Deployment (CD) to deploy the application to major cloud providers like AWS EC2, AWS ECS or Google Cloud (please submit the deployment link).
-6. Deploys the application behind a **load balancer** with **auto scaling** enabled.
-7. Provides a **visual flow diagram** of your workflow and architecture, **created by you without the use of AI** (see [Visual Flow Diagram](#visual-flow-diagram-required-) below).
+Your mission, should you choose to accept it, is to build a CI/CD pipeline and deploy the application by:
+1. Forking this repository to your personal GitHub account.
+2. Dockerizing a Node.js application, keeping the image **as lightweight as possible** (Please state the final image size in your repository's README so we can see the result of your optimization).
+3. Establishing an automated CI/CD build process using GitHub Actions workflow and a container registry service such as DockerHub or Amazon Elastic Container Registry (ECR) or similar services.
+4. Initiating CI tests automatically when changes are pushed to the feature branch on GitHub.
+5. Utilizing GitHub Actions for Continuous Deployment (CD) to deploy the application to major cloud providers like AWS EC2, AWS ECS or Google Cloud (please submit the deployment link).
+6. Deploying the application behind a **load balancer** with **auto scaling** enabled.
+7. Provisioning **all cloud infrastructure using Infrastructure as Code (IaC)** such as Terraform, AWS CloudFormation, AWS CDK, or Pulumi. Resources created manually through the cloud console will not be accepted. 
+8. Providing a **visual flow diagram** of your workflow and architecture, **created by you without the use of AI** (see [Visual Flow Diagram](#visual-flow-diagram-required-) below).
 
 ## Visual Flow Diagram (Required) 🎨
 A `visual flow diagram` is **mandatory** for this test. It must illustrate the sequence of tasks you performed and the architecture you deployed, including:
@@ -31,12 +32,11 @@ This test is designed to evaluate your ability to implement modern automated inf
 ## How We Evaluate 🎯
 | Area | Weight |
 |---|---|
-| CI/CD pipeline (tests on push, build, push to registry, deploy) | 30% |
+| CI/CD pipeline (tests on push, build, push to registry, deploy) | 25% |
 | Deployment works behind a load balancer with a real auto scaling policy | 25% |
-| Docker image optimization (size, multi-stage, non-root, .dockerignore) | 15% |
-| Visual flow diagram (accurate, manually created) | 10% |
-| Infrastructure as code / repo quality / commit history | 10% |
-| Security basics (no secrets in repo, least privilege) | 10% |
+| Visual flow diagram (accurate, manually created) | 20% |
+| Infrastructure as code / repo quality / commit history | 20% |
+| Docker image optimization (size, multi-stage, non-root, .dockerignore) | 10% |
 
 ## Bonus (Optional) ⭐
 - Image vulnerability scan in CI (e.g. Trivy)
