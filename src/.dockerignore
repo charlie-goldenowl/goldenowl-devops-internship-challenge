@@ -1,8 +1,14 @@
 **/node_modules/
 **/dist
 .git
-npm-debug.log
+.github
+.gitignore
+npm-debug.log*
 .coverage
 .coverage.*
+coverage
 .env
+.env.*
 .aws
+README.md
+LICENSE
