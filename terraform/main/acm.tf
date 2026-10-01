@@ -17,3 +17,11 @@ output "acm_validation_records" {
     }
   }
 }
+
+resource "aws_acm_certificate_validation" "app" {
+  certificate_arn = aws_acm_certificate.app.arn
+
+  timeouts {
+    create = "30m"
+  }
+}
