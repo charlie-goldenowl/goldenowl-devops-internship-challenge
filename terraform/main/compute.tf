@@ -42,3 +42,37 @@ resource "aws_launch_template" "app" {
     }
   }
 }
+
+resource "aws_autoscaling_group" "app" {
+  name                      = "${var.project}-asg"
+  min_size                  = var.asg_min_size
+  max_size                  = var.asg_max_size
+  desired_capacity          = var.asg_min_size
+  vpc_zone_identifier       = aws_subnet.public[*].id
+  target_group_arns         = [aws_lb_target_group.app.arn]
+  health_check_type         = "ELB"
+  health_check_grace_period = 180
+
+  launch_template {
+    id      = aws_launch_template.app.id
+    version = aws_launch_template.app.latest_version
+  }
+
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+      instance_warmup        = 90
+    }
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "${var.project}-app"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    ignore_changes = [desired_capacity]
+  }
+}
