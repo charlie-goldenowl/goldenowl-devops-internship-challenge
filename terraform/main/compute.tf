@@ -4,7 +4,6 @@ data "aws_ssm_parameter" "al2023_ami" {
 
 locals {
   registry = split("/", aws_ecr_repository.app.repository_url)[0]
-  image    = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
 }
 
 resource "aws_launch_template" "app" {
@@ -28,12 +27,13 @@ resource "aws_launch_template" "app" {
     enabled = true
   }
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh.tftpl", {
-    region   = var.region
-    registry = local.registry
-    image    = local.image
-    app_port = var.app_port
-  }))
+  user_data = base64encode(replace(templatefile("${path.module}/user_data.sh.tftpl", {
+    region     = var.region
+    registry   = local.registry
+    repo_url   = aws_ecr_repository.app.repository_url
+    param_name = aws_ssm_parameter.image_tag.name
+    app_port   = var.app_port
+  }), "\r\n", "\n"))
 
   tag_specifications {
     resource_type = "instance"

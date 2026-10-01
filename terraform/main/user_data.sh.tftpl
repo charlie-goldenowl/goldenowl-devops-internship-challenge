@@ -4,6 +4,9 @@ set -euxo pipefail
 dnf install -y docker
 systemctl enable --now docker
 
+IMAGE_TAG=$(aws ssm get-parameter --name "${param_name}" --region ${region} --query Parameter.Value --output text)
+IMAGE="${repo_url}:$IMAGE_TAG"
+
 aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${registry}
-docker pull ${image}
-docker run -d --name app --init --restart unless-stopped -p ${app_port}:${app_port} ${image}
+docker pull "$IMAGE"
+docker run -d --name app --init --restart unless-stopped -p ${app_port}:${app_port} "$IMAGE"
