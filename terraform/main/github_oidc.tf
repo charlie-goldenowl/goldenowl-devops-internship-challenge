@@ -3,6 +3,22 @@ variable "github_repo" {
   default = "danh1508bku/goldenowl-devops-internship-challenge"
 }
 
+variable "github_owner_id" {
+  type    = string
+  default = "171154517"
+}
+
+variable "github_repo_id" {
+  type    = string
+  default = "1395561982"
+}
+
+locals {
+  github_owner = split("/", var.github_repo)[0]
+  github_name  = split("/", var.github_repo)[1]
+  github_sub   = "repo:${local.github_owner}@${var.github_owner_id}/${local.github_name}@${var.github_repo_id}:ref:refs/heads/master"
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
@@ -26,7 +42,7 @@ data "aws_iam_policy_document" "github_assume" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/master"]
+      values   = [local.github_sub]
     }
   }
 }
