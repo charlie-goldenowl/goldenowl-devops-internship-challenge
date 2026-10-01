@@ -29,3 +29,18 @@ jobs:
 
       - name: test
         run: npm test
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: check repository
+        uses: actions/checkout@v4
+
+      - name: build docker image
+        run: docker build -t goldenowl:${{ github.sha }} .
+
+      - name: show docker image
+        run: docker images goldenowl
