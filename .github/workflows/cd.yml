@@ -1,0 +1,102 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - '.github/workflows/cd.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: goldenowl-app
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+      - run: npm ci
+      - run: npm run lint:check
+      - run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2.1.7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ./src
+          load: true
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Push image
+        run: docker push ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Remember current image tag
+        id: prev
+        run: |
+          TAG=$(aws ssm get-parameter --name /goldenowl/image-tag --query Parameter.Value --output text)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy
+        id: deploy
+        run: bash scripts/refresh-asg.sh "${{ github.sha }}"
+
+      - name: Smoke test
+        run: |
+          ALB=$(aws elbv2 describe-load-balancers --names goldenowl-alb --query 'LoadBalancers[0].DNSName' --output text)
+          for i in $(seq 1 10); do
+            if curl -fsS --max-time 5 "http://$ALB/" | grep -q "Welcome warriors to Golden Owl"; then
+              echo "Smoke test passed"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Smoke test failed"
+          exit 1
+
+      - name: Roll back to previous image
+        if: ${{ failure() && steps.deploy.outcome != 'skipped' }}
+        run: bash scripts/refresh-asg.sh "${{ steps.prev.outputs.tag }}"
