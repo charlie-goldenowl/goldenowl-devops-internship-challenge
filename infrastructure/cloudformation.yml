@@ -254,7 +254,7 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: repo:dnminhchau/goldenowl-devops-internship-challenge:ref:refs/heads/feature/devops-challenge
+                token.actions.githubusercontent.com:sub: repo:dnminhchau@167704587/goldenowl-devops-internship-challenge@1401892810:ref:refs/heads/feature/devops-challenge
 
       Policies:
         - PolicyName: goldenowl-github-actions-ecs-deploy
