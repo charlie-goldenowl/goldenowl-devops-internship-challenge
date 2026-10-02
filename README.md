@@ -1,3 +1,247 @@
+# Golden Owl DevOps Internship Challenge
+
+## Submission
+
+- GitHub Repository: https://github.com/dnminhchau/goldenowl-devops-internship-challenge
+- DockerHub Repository: https://hub.docker.com/r/cdoan0072/goldenowl-devops-internship-challenge
+- Live Application: http://goldenowl-alb-569630106.ap-southeast-2.elb.amazonaws.com
+- Docker Image Size: 83 MB
+
+## Architecture
+
+![Architecture Flow](docs/goldenowl-devops-flow.jpg)
+
+Editable diagram source:
+
+```text
+docs/goldenowl-devops-flow.drawio
+```
+
+## Docker
+
+The Node.js application is containerized using a lightweight Alpine-based Node.js image.
+
+Key points:
+
+- Base image: `node:20-alpine`
+- Production dependencies only: `npm ci --omit=dev`
+- Runs as non-root user: `node`
+- Exposes port `3000`
+- Uses `.dockerignore`
+- Final image size: `83 MB`
+
+Dockerfile:
+
+```dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci --omit=dev
+
+COPY . .
+
+USER node
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+```
+
+## CI/CD Pipeline
+
+GitHub Actions automates testing, Docker image creation, vulnerability scanning, image publishing, and deployment to AWS ECS.
+
+### CI
+
+For pushes to `feature/devops-challenge`:
+
+```text
+Git Push
+   ↓
+GitHub Actions
+   ↓
+npm ci
+   ↓
+npm test
+   ↓
+Docker Build
+   ↓
+Trivy Vulnerability Scan
+   ↓
+DockerHub Login
+   ↓
+Docker Push
+```
+
+Changes that only modify `README.md` or files under `docs/` are ignored by the workflow.
+
+Pull requests to `master` run CI checks without deploying to AWS.
+
+### CD
+
+For pushes to `feature/devops-challenge`:
+
+```text
+Docker image pushed to DockerHub
+   ↓
+GitHub Actions obtains an OIDC token
+   ↓
+AWS IAM Role is assumed
+   ↓
+ECS Service is updated
+   ↓
+Fargate starts a new task
+   ↓
+The task pulls the latest Docker image
+   ↓
+GitHub Actions waits until the ECS service is stable
+```
+
+GitHub OIDC is used instead of storing long-lived AWS credentials in GitHub Secrets.
+
+## Security Scan
+
+Docker images are scanned during CI using Trivy.
+
+The scan checks for:
+
+- `HIGH` vulnerabilities
+- `CRITICAL` vulnerabilities
+
+The scan currently reports vulnerabilities without blocking the deployment pipeline.
+
+## AWS Infrastructure
+
+The infrastructure is provisioned using AWS CloudFormation.
+
+CloudFormation template:
+
+```text
+infrastructure/cloudformation.yml
+```
+
+The deployed infrastructure includes:
+
+- VPC
+- Two public subnets
+- Internet Gateway
+- Route Table
+- Security Groups
+- Application Load Balancer
+- Target Group
+- ECS Cluster
+- ECS Fargate Task Definition
+- ECS Service
+- IAM Roles
+- GitHub Actions Deployment IAM Role
+- ECS Service Auto Scaling
+
+AWS Region:
+
+```text
+ap-southeast-2
+```
+
+## Load Balancer
+
+The application is deployed behind an Application Load Balancer.
+
+Traffic flow:
+
+```text
+Internet / User
+   ↓
+Application Load Balancer :80
+   ↓
+Target Group :3000
+   ↓
+ECS Service
+   ↓
+Fargate Task
+   ↓
+Node.js Application
+```
+
+Target group health check:
+
+```text
+Path: /
+Protocol: HTTP
+Expected status: 200
+```
+
+The deployed target was verified as healthy.
+
+## Auto Scaling
+
+The ECS service uses target-tracking auto scaling.
+
+Configuration:
+
+- Minimum tasks: `1`
+- Maximum tasks: `3`
+- Metric: `ECSServiceAverageCPUUtilization`
+- Target CPU utilization: `60%`
+- Scale-in cooldown: `60 seconds`
+- Scale-out cooldown: `60 seconds`
+
+## Run Locally
+
+Navigate to the application directory:
+
+```bash
+cd src
+```
+
+Install dependencies and run tests:
+
+```bash
+npm install
+npm test
+```
+
+Build the Docker image:
+
+```bash
+docker build -t goldenowl-app .
+```
+
+Run the container:
+
+```bash
+docker run -p 3000:3000 goldenowl-app
+```
+
+Then access:
+
+```text
+http://localhost:3000
+```
+
+Expected response:
+
+```json
+{"message":"Welcome warriors to Golden Owl!"}
+```
+
+## Deployment
+
+The deployed application is available at:
+
+```text
+http://goldenowl-alb-569630106.ap-southeast-2.elb.amazonaws.com
+```
+
+Expected response:
+
+```json
+{"message":"Welcome warriors to Golden Owl!"}
+```
+
+---
 # Golden Owl DevOps Internship - Technical Test
 At Golden Owl, we believe in treating infrastructure as code and automating resource provisioning to the fullest extent possible. 
 
