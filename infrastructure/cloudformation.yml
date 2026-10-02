@@ -238,6 +238,35 @@ Resources:
         ScaleInCooldown: 60
         ScaleOutCooldown: 60
 
+  GitHubActionsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: goldenowl-github-actions-deploy-role
+
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: arn:aws:iam::298032444074:oidc-provider/token.actions.githubusercontent.com
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: repo:dnminhchau/goldenowl-devops-internship-challenge:ref:refs/heads/feature/devops-challenge
+
+      Policies:
+        - PolicyName: goldenowl-github-actions-ecs-deploy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:UpdateService
+                  - ecs:DescribeServices
+                Resource: '*'
+
 Outputs:
 
   LoadBalancerDNSName:
