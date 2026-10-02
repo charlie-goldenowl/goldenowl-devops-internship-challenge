@@ -1,5 +1,9 @@
 name: CI
 
+permissions:
+  contents: read
+  id-token: write
+
 on:
   push:
     branches:
@@ -31,20 +35,47 @@ jobs:
         working-directory: src
         run: npm test
 
+      - name: Build Docker image
+        working-directory: src
+        run: docker build -t goldenowl-app:ci .
+
       - name: Dang nhap DockerHub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/devops-challenge'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
-        working-directory: src
+      - name: Gan tag DockerHub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/devops-challenge'
         run: |
-          docker build \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/goldenowl-devops-internship-challenge:latest \
-            .
+          docker tag goldenowl-app:ci \
+            ${{ secrets.DOCKERHUB_USERNAME }}/goldenowl-devops-internship-challenge:latest
 
       - name: Push Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/devops-challenge'
         run: |
           docker push \
             ${{ secrets.DOCKERHUB_USERNAME }}/goldenowl-devops-internship-challenge:latest
+
+      - name: Dang nhap AWS bang OIDC
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/devops-challenge'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::298032444074:role/goldenowl-github-actions-deploy-role
+          aws-region: ap-southeast-2
+
+      - name: Trien khai phien ban moi len ECS
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/devops-challenge'
+        run: |
+          aws ecs update-service \
+            --cluster goldenowl-cluster \
+            --service goldenowl-service \
+            --force-new-deployment
+
+      - name: Cho ECS trien khai on dinh
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/devops-challenge'
+        run: |
+          aws ecs wait services-stable \
+            --cluster goldenowl-cluster \
+            --services goldenowl-service
