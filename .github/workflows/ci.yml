@@ -8,9 +8,16 @@ on:
   push:
     branches:
       - "feature/**"
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
 
 jobs:
   test-build-push:
