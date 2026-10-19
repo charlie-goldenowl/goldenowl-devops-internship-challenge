@@ -1,0 +1,70 @@
+name: Node.js CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "master", "feature/*" ]
+
+jobs:
+  # JOB 1: Test ứng dụng Node.js
+  test:
+    runs-on: ubuntu-latest
+    steps:      
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+     
+      - name: Install dependencies
+        run: cd src && npm install
+      
+      - name: Run tests
+        run: cd src && npm test --if-present
+
+  # JOB 2: Quét bảo mật hạ tầng với Checkov
+  security-scan:
+    name: Terraform Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform/
+          framework: terraform
+          soft_fail: true # Báo lỗi nhưng không dừng pipeline để bạn dễ dàng debug report
+
+  # JOB 3: Deploy (Chỉ chạy khi Test & Scan thành công và ở nhánh master)
+  deploy:
+    needs: [test, security-scan]
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for EC2 initialization
+        run: echo "Waiting 150 seconds for EC2 user_data to install Docker..." && sleep 150
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Build and push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/node-app:latest
+          
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/node-app:latest
+            sudo docker stop my-node-app || true
+            sudo docker rm my-node-app || true
+            sudo docker run -d -p 80:3000 --name my-node-app ${{ secrets.DOCKERHUB_USERNAME }}/node-app:latest
